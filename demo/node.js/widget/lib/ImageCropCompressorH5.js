@@ -11,9 +11,9 @@ var ImageCropCompressorH5 = {
         var opt_default = {
             image_input_selector: "input[type=file]", // 监听的文件域选择器。默认input[type=file]
             image_review_success_callback: null, // 图片预览加载完成后回调
-            image_width_px: "300", // 图片最终宽度，单位px。默认300
-            image_height_px: "300", // 图片最终高度，单位px。默认300
-            image_quality_kb: "100", // 图片最大质量，单位kb。默认100
+            image_width_px: "200", // 图片最终宽度，单位px。默认300
+            image_height_px: "400", // 图片最终高度，单位px。默认300
+            image_quality_kb: "300", // 图片最大质量，单位kb。默认100
             image_crop_success_callback: function(base64) { // 图片裁剪完成后回调。自动关闭弹层。 function(裁剪后图片的base64){}
                 console.log("base64.length:" + base64.length);
                 $("img.result").attr("src", base64).css("display", "block");
@@ -607,13 +607,28 @@ var ImageCropCompressorH5 = {
 
             var doCrop = function() {
 
+                var t; // 临时变量
+
                 // 获得预览盒与原图的缩放比
                 var ratio_per = (img.width / _this.dom_img_preview.width() + img.height / _this.dom_img_preview.height()) / 2;
 
                 // 利用canvas裁剪图片
                 var canvas = document.createElement("canvas");
-                canvas.width = Math.floor(_this.crop_width_px * ratio_per);
-                canvas.height = Math.floor(_this.crop_height_px * ratio_per);
+                var crop_width_px = Math.floor(_this.crop_width_px * ratio_per);
+                var crop_height_px = Math.floor(_this.crop_height_px * ratio_per);
+
+                // 裁剪宽高容错
+                if (crop_width_px > _this.img_ori_width_px) {
+                    crop_height_px = Math.floor(_this.img_ori_width_px * crop_height_px / crop_width_px);
+                    crop_width_px = _this.img_ori_width_px;
+                }
+                if (crop_height_px > _this.img_ori_height_px) {
+                    crop_width_px = Math.floor((_this.img_ori_height_px) * crop_width_px / crop_height_px);
+                    crop_height_px = (_this.img_ori_height_px);
+                }
+
+                canvas.width = crop_width_px;
+                canvas.height = crop_height_px;
                 var ctx = canvas.getContext("2d");
                 var sx = Math.floor((_this.crop_left_px - _this.dom_img_preview.position().left) * ratio_per);
                 var sy = Math.floor((_this.crop_top_px - _this.dom_img_preview.position().top) * ratio_per);
@@ -630,58 +645,59 @@ var ImageCropCompressorH5 = {
                 //     canvas.height -= 2;
                 // }
 
-
-                // console.log("633sx/y:" + sx + ":" + sy);
-                // console.log("634canvas:" + canvas.width + ":" + canvas.height);
-                // console.log("635ori:" + _this.img_ori_width_px + ":" + _this.img_ori_height_px);
-
-                if (sx + canvas.width >= _this.img_ori_width_px)
-                    sx -= sx + canvas.width - _this.img_ori_width_px;
+                // 裁剪位置和裁剪宽高 容错
+                if (sx + crop_width_px >= _this.img_ori_width_px)
+                    sx -= sx + crop_width_px - _this.img_ori_width_px;
                 if (sx < 0)
                     sx = 0;
-                if (canvas.width >= _this.img_ori_width_px) {
-                    canvas.height = Math.floor(_this.img_ori_width_px * canvas.height / canvas.width);
-                    canvas.width = _this.img_ori_width_px;
-                }
 
-                if (sy + canvas.height >= _this.img_ori_height_px)
-                    sy -= sy + canvas.height - _this.img_ori_height_px;
+                if (sy + crop_height_px >= _this.img_ori_height_px)
+                    sy -= sy + crop_height_px - _this.img_ori_height_px;
                 if (sy < 0)
                     sy = 0;
-                if (sy + canvas.height > _this.img_ori_height_px) {
-                    canvas.width = Math.floor(_this.img_ori_height_px * canvas.width / canvas.height);
-                    canvas.height = _this.img_ori_height_px;
+                if (sy + crop_height_px > _this.img_ori_height_px) {
+                    crop_width_px = Math.floor((_this.img_ori_height_px - sy) * crop_width_px / crop_height_px);
+                    crop_height_px = (_this.img_ori_height_px - sy);
                 }
-                // console.log("646canvas:" + canvas.width + ":" + canvas.height);
+
+                // console.log("646canvas:" + crop_width_px + ":" + crop_height_px);
+
+                // 图片旋转、裁剪位置重定位
                 if (_this.image_exif.Orientation == "3") {
-                    ctx.translate(canvas.width, canvas.height);
+                    ctx.translate(crop_width_px, crop_height_px);
                     ctx.rotate(180 * Math.PI / 180);
+                    // sx = crop_width_px - sx - _this.crop_width_px;
+                    // sy = crop_height_px - sy - _this.crop_height_px;
+                    sx = _this.img_ori_width_px - sx - crop_width_px;
+                    sy = _this.img_ori_height_px - sy - crop_height_px;
                 }
                 if (_this.image_exif.Orientation == "6") {
-                    var t = sx;
+                    t = sx;
                     sx = sy;
-                    sy = t;
-                    t = canvas.width;
-                    canvas.width = canvas.height;
-                    canvas.height = t;
-                    ctx.translate(canvas.width, 0);
+                    sy = _this.img_ori_width_px - t - crop_width_px;
+
+                    t = crop_width_px;
+                    crop_width_px = crop_height_px;
+                    crop_height_px = t;
+
+                    ctx.translate(crop_width_px / 2, 0);
                     ctx.rotate(90 * Math.PI / 180);
                 }
                 if (_this.image_exif.Orientation == "8") {
-                    var t = sx;
-                    sx = sy;
+                    t = sx;
+                    sx = _this.img_ori_height_px - sy - crop_height_px;
                     sy = t;
-                    t = canvas.width;
-                    canvas.width = canvas.height;
-                    canvas.height = t;
-                    ctx.translate(0, canvas.height);
+
+                    t = crop_width_px;
+                    crop_width_px = crop_height_px;
+                    crop_height_px = t;
+
+                    ctx.translate(0, crop_height_px * 2);
                     ctx.rotate(-90 * Math.PI / 180);
                 }
 
-
-                ctx.drawImage(img, sx, sy, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
-
-                // var base64_source = canvas.toDataURL(_this.image_type);
+                // 裁剪
+                ctx.drawImage(img, sx, sy, crop_width_px, crop_height_px, 0, 0, crop_width_px, crop_height_px);
 
                 // 压缩
                 if (Callback_success)
