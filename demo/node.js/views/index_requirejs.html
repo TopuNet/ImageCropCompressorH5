@@ -11,15 +11,7 @@
 <body class="index">
     <input type="file" id="file_input" accept="image/*">
     <img class="result" style="display:none; max-width:300px;" />
-    <script type="text/javascript" src="/widget/lib/zepto.min.js"></script>
-    <script type="text/javascript" src="/widget/lib/exif.js"></script>
-    <script type="text/javascript" src="/widget/lib/ImageCropCompressorH5.js"></script>
-    <script type="text/javascript" src="/widget/app/index2.js"></script>
-    <script type="text/javascript">
-    $(function() {
-        index.init();
-    });
-    </script>
+    <script data-main="/widget/main.js" src="/inc/require.js" id="script_page" page="index"></script>
 </body>
 
 </html>

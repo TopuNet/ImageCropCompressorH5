@@ -149,6 +149,10 @@ app.use(express.static(path.join(__dirname, ''), {
     maxAge: '0' // dev
 }));
 
+app.use("/reqjs", function(req, res) {
+    res.render("index_requirejs.html");
+});
+
 // routes
 app.use("/", function(req, res) {
     res.render("index.html");
