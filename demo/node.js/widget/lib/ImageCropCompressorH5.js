@@ -257,7 +257,8 @@ var ImageCropCompressorH5 = {
                         if (_this.Paras.image_crop_success_callback)
                             _this.Paras.image_crop_success_callback(base64);
 
-                        _this.dom_crop_layer.css("display", "none");
+                        _this.bg_close.apply(_this);
+
                     }]);
 
                     // 回调
@@ -753,6 +754,10 @@ var ImageCropCompressorH5 = {
             if (Callback)
                 Callback();
         });
+    },
+    // 关闭弹层
+    bg_close: function() {
+        this.dom_crop_layer.css("display", "none");
     }
 };
 

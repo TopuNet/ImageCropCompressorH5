@@ -1,4 +1,4 @@
-# 图片裁剪压缩插件，基于H5 v1.0.1
+# 图片裁剪压缩插件，基于H5 v1.0.2
 ###安装：npm install TopuNet-ImageCropCompressorH5
 
 文件结构：
@@ -47,8 +47,16 @@ requireJS引用
         */
         ImageCropCompressorH5.img_Compress(obj, quality, Callback);
 
+3. 关闭裁剪层
+
+        ImageCropCompressorH5.bg_close();
+
 更新日志：
 -------------
+v1.0.2
+
+        1. 增加关闭裁剪层方法
+        
 v1.0.1
 
         1. 制作、发布

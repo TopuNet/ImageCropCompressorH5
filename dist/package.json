@@ -1,6 +1,6 @@
 {
   "name": "TopuNet-ImageCropCompressorH5",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Topu.net JS图片剪裁压缩插件",
   "main": "Readme.md",
   "scripts": {
