@@ -1,14 +1,14 @@
 {
-  "name": "TopuNet-BaiduMap",
-  "version": "2.1.2",
-  "description": "Topu.net 百度地图插件",
+  "name": "TopuNet-ImageCropCompressorH5",
+  "version": "1.0.1",
+  "description": "Topu.net JS图片剪裁压缩插件",
   "main": "Readme.md",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TopuNet/BaiduMap.git"
+    "url": "git+https://github.com/TopuNet/ImageCropCompressorH5.git"
   },
   "keywords": [
     "topu.net"
@@ -16,7 +16,7 @@
   "author": "Topu.net",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/TopuNet/BaiduMap/issues"
+    "url": "https://github.com/TopuNet/ImageCropCompressorH5/issues"
   },
-  "homepage": "https://github.com/TopuNet/BaiduMap#readme"
+  "homepage": "https://github.com/TopuNet/ImageCropCompressorH5#readme"
 }
