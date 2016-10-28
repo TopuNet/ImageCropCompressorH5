@@ -1,4 +1,4 @@
-# 图片裁剪压缩插件，基于H5 v1.0.2
+# 图片裁剪压缩插件，基于H5 v1.1.1
 ###安装：npm install TopuNet-ImageCropCompressorH5
 
 文件结构：
@@ -20,23 +20,40 @@ requireJS引用
 
 功能配置及启用：
 --------------
-1. 初始化（监听某文件域的改变并弹出裁剪层，裁剪后压缩并转为base64）：
+1. 初始化（监听某文件域——支持多个文件域——的改变并弹出裁剪层，裁剪后压缩并转为base64）：
 
-        var opt = {
-            image_input_selector: "input[type=file]", // 监听的文件域选择器。默认input[type=file]
-            image_review_success_callback: null, // 图片预览加载完成后回调
+        var crop1 = new ImageCropCompressorH5();
+        crop1.Listener({
+            image_input_selector: "#file_input_1",
+            image_review_success_callback: function() {
+                console.log("预览加载完毕");
+                // $("section.crop_layer").css("display", "block");
+            },
             image_width_px: "200", // 图片最终宽度，单位px。默认300
-            image_height_px: "400", // 图片最终高度，单位px。默认300
-            image_quality_kb: "150", // 图片最大质量，单位kb。默认300
+            image_height_px: "200", // 图片最终高度，单位px。默认300
+            image_quality_kb: "200", // 图片最大质量，单位kb。默认300
             image_crop_success_callback: function(base64) { // 图片裁剪完成后回调。自动关闭弹层。 function(裁剪后图片的base64){}
-
-                // Do Sth.
                 console.log("base64.length:" + base64.length);
-
+                $("img.result_1").attr("src", base64).show(0);
+                $("img.result_2").hide(0);
             }
-        };
+        });
 
-        ImageCropCompressorH5.init(opt);
+        var crop2 = new ImageCropCompressorH5();
+        crop2.Listener({
+            image_input_selector: "#file_input_2",
+            image_review_success_callback: function() {
+                console.log("预览加载完毕");
+            },
+            image_width_px: "400", // 图片最终宽度，单位px。默认300
+            image_height_px: "400", // 图片最终高度，单位px。默认300
+            image_quality_kb: "300", // 图片最大质量，单位kb。默认300
+            image_crop_success_callback: function(base64) { // 图片裁剪完成后回调。自动关闭弹层。 function(裁剪后图片的base64){}
+                console.log("base64.length:" + base64.length);
+                $("img.result_2").attr("src", base64).show(0);
+                $("img.result_1").hide(0);
+            }
+        });
 
 2. 单独调用压缩图片方法：
 
@@ -53,6 +70,11 @@ requireJS引用
 
 更新日志：
 -------------
+v1.1.1
+
+        1. 增加对同页面内多个文件域监听的支持。每个文件域可以设置自己的参数。
+        2. 修改调用方法，详见：功能配置及启用
+
 v1.0.2
 
         1. 增加关闭裁剪层方法
