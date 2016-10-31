@@ -1,5 +1,5 @@
 /*
-    基于H5的图片裁剪缩小压缩 v1.1.1
+    基于H5的图片裁剪缩小压缩 v1.1.2
     npm install TopuNet-ImageCropCompressorH5
     高京
     2016-09-22
@@ -58,20 +58,12 @@ var v_global = {
     // ctx.fillRect(0, 0, this.window_width_px, this.window_height_px);
     // ctx.clearRect(this.crop_left_px, this.crop_top_px, this.crop_width_px, this.crop_height_px);
 
-    // 添加遮罩和边框盒
-    v_global.dom_img_preview_mask_border = $(document.createElement("img"))
-        .css({
-            "position": "fixed",
-            "top": "0",
-            "left": "0",
-            // "-webkit-mask": "url(\"" + c_mask.toDataURL(_this.image_type, 0.01) + "\")" // 用-webkit-mask 安卓拖拽和缩放太卡
-        }).appendTo(v_global.dom_crop_layer);
-
     // 创建确定按钮
     v_global.dom_button_confirm = $(document.createElement("div"))
         .css({
             "position": "fixed",
             "left": "50%",
+            "bottom": "10vh",
             "width": "26vw",
             "height": "8vw",
             "line-height": "8vw",
@@ -91,7 +83,7 @@ function ImageCropCompressorH5() {
     return {
         // 监听文件域的change事件
         Listener: function(opt) {
-            var _this = $.extend(this,v_global);
+            var _this = $.extend(this, v_global);
 
             var opt_default = {
                 image_input_selector: "input[type=file]", // 监听的文件域选择器。默认input[type=file]
@@ -106,11 +98,22 @@ function ImageCropCompressorH5() {
 
             _this.Paras = $.extend(opt_default, opt);
 
+            // 添加遮罩和边框盒
+            _this.dom_img_preview_mask_border = $(document.createElement("img"))
+                .css({
+                    "position": "fixed",
+                    "top": "0",
+                    "left": "0",
+                    "display": "none"
+                        // "-webkit-mask": "url(\"" + c_mask.toDataURL(_this.image_type, 0.01) + "\")" // 用-webkit-mask 安卓拖拽和缩放太卡
+                }).appendTo(_this.dom_crop_layer);
+
             // 根据目标尺寸生成裁剪框和边框
             (function() {
                 // 计算裁剪层宽高
                 _this.crop_width_px = Math.floor(v_global.window_width_px * 0.9);
                 _this.crop_height_px = Math.floor(_this.crop_width_px * _this.Paras.image_height_px / _this.Paras.image_width_px);
+
                 if (_this.crop_height_px > Math.floor(v_global.window_height_px * 0.7)) {
                     _this.crop_width_px = Math.floor(_this.crop_width_px * _this.window_height_px * 0.7 / _this.crop_height_px);
                     _this.crop_height_px = Math.floor(_this.window_height_px * 0.7);
@@ -119,6 +122,7 @@ function ImageCropCompressorH5() {
                 // 计算裁剪层位置
                 _this.crop_top_px = Math.floor((_this.window_height_px - _this.crop_height_px) / 2);
                 _this.crop_left_px = Math.floor((_this.window_width_px - _this.crop_width_px) / 2); // 创建遮罩和边框(canvas)
+
                 var c_border = document.createElement("canvas");
                 c_border.width = _this.window_width_px;
                 c_border.height = _this.window_height_px;
@@ -161,11 +165,6 @@ function ImageCropCompressorH5() {
 
                 // 设置遮罩和边框盒的图片路径（canvas绘制的遮罩和边框）
                 _this.dom_img_preview_mask_border.attr("src", c_border.toDataURL(_this.image_type));
-
-                // 设置确定按钮的位置
-                _this.dom_button_confirm.css({
-                    "top": (_this.crop_top_px * 1.3 + _this.crop_height_px) + "px",
-                });
             })();
 
             $(_this.Paras.image_input_selector).change(function() {
@@ -246,6 +245,14 @@ function ImageCropCompressorH5() {
                         var top = (_this.img_preview_height_px - _this.window_height_px) / -2;
                         var left = (_this.img_preview_width_px - _this.window_width_px) / -2;
 
+                        // 设置遮罩层显示
+                        _this.dom_img_preview_mask_border.css("display", "block");
+
+                        // 设置确定按钮的位置
+                        _this.dom_button_confirm.css({
+                            "top": (_this.crop_top_px * 1.3 + _this.crop_height_px) + "px",
+                        });
+
                         // 设置图片预览盒的尺寸、位置及图片路径，并显示
                         _this.dom_img_preview
                             .attr("src", img.src)
@@ -267,7 +274,11 @@ function ImageCropCompressorH5() {
                             if (_this.Paras.image_crop_success_callback)
                                 _this.Paras.image_crop_success_callback(base64);
 
+                            // 关闭弹层
                             _this.bg_close.apply(_this);
+
+                            // 设置遮罩层隐藏——解决页面内含有多个监听时，裁剪盒不能同时出现的需求
+                            _this.dom_img_preview_mask_border.css("display", "none");
 
                         }]);
 

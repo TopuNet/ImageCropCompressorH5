@@ -25,8 +25,8 @@ define(["lib/ImageCropCompressorH5", "lib/zepto.min"], function($Crop) {
                 image_review_success_callback: function() {
                     console.log("预览加载完毕");
                 },
-                image_width_px: "400", // 图片最终宽度，单位px。默认300
-                image_height_px: "400", // 图片最终高度，单位px。默认300
+                image_width_px: "500", // 图片最终宽度，单位px。默认300
+                image_height_px: "200", // 图片最终高度，单位px。默认300
                 image_quality_kb: "300", // 图片最大质量，单位kb。默认300
                 image_crop_success_callback: function(base64) { // 图片裁剪完成后回调。自动关闭弹层。 function(裁剪后图片的base64){}
                     console.log("base64.length:" + base64.length);
