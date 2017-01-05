@@ -1,5 +1,5 @@
 /*
-    基于H5的图片裁剪缩小压缩 v1.1.3
+    基于H5的图片裁剪缩小压缩 v1.1.4
     npm install TopuNet-ImageCropCompressorH5
     高京
     2016-09-22
@@ -46,17 +46,6 @@ var v_global = {
     // 添加img_preview盒
     v_global.dom_img_preview = $(document.createElement("img"))
         .css("display", "none").appendTo(v_global.dom_crop_layer);
-    // .css("-webkit-mask", "url(\"" + c.toDataURL(_this.image_type, 100) + "\")");
-
-
-    // 创建mask(canvas)
-    // var c_mask = document.createElement("canvas");
-    // c_mask.width = this.window_width_px;
-    // c_mask.height = this.window_height_px;
-    // var ctx = c_mask.getContext("2d");
-    // ctx.fillStyle = "rgba(255, 255, 255, 1)";
-    // ctx.fillRect(0, 0, this.window_width_px, this.window_height_px);
-    // ctx.clearRect(this.crop_left_px, this.crop_top_px, this.crop_width_px, this.crop_height_px);
 
     // 创建确定按钮
     v_global.dom_button_confirm = $(document.createElement("div"))
@@ -106,7 +95,7 @@ function ImageCropCompressorH5() {
                     "left": "0",
                     "display": "none"
                         // "-webkit-mask": "url(\"" + c_mask.toDataURL(_this.image_type, 0.01) + "\")" // 用-webkit-mask 安卓拖拽和缩放太卡
-                }).appendTo(_this.dom_crop_layer);
+                }).addClass("mask_border").appendTo(_this.dom_crop_layer);
 
             // 根据目标尺寸生成裁剪框和边框
             (function() {
@@ -266,9 +255,6 @@ function ImageCropCompressorH5() {
                             // 关闭弹层
                             _this.bg_close.apply(_this);
 
-                            // 设置遮罩层隐藏——解决页面内含有多个监听时，裁剪盒不能同时出现的需求
-                            _this.dom_img_preview_mask_border.css("display", "none");
-
                         }]);
 
                         // 回调
@@ -301,7 +287,7 @@ function ImageCropCompressorH5() {
                         // 如果裁剪后高度小于裁剪框高度，则重新计算
                         if (_this.img_ori_height_px * ratio < _this.crop_height_px * 1.5) {
                             ratio = _this.crop_height_px * 1.5 / _this.img_ori_height_px;
-                        } 
+                        }
 
                         // 设置canvas宽高
                         canvas.width = _this.img_ori_width_px * ratio;
@@ -386,9 +372,43 @@ function ImageCropCompressorH5() {
 
             var dom_image_preview_left_px;
             var dom_image_preview_top_px;
+            var dom_image_preview_width_px;
+            var dom_image_preview_height_px;
 
-            $(window).on("touchstart", function(e) {
+            // 两点间距离——缩放用
+            var distance = {}; // 0-初始位置距离 1-最终位置距离
 
+            // 计算image_preview盒的尺寸及位置
+            var width_px;
+            var height_px;
+            var left_px;
+            var top_px;
+
+            // 距离差系数
+            var distance_plus = 1,
+                distance_plus_distance_split = 10, // 调整系数间隔距离
+                distance_plus_min = 0.5, // 最下系数
+                distance_plus_max = 2.5, // 最大系数
+                distance_plus_step = 0.05; // 系数调整阶梯
+
+            // 计算两点间距离
+            var cal_distance = function(x1, x2, y1, y2) {
+                var distance;
+                // 初始距离
+                if (y1 == y2) { // 如果y坐标相等，距离为x的差
+                    distance = x2 - x1;
+                } else if (x1 == x2) { // 如果y坐标不相等 且 x坐标相等，距离为y的差
+                    distance = y2 - y1;
+                } else { // 如果x、y都不相等，则距离为直角三角形的斜边长度 
+                    var a, b;
+                    a = y2 - y1;
+                    b = x2 - x1;
+                    distance = Math.sqrt(a * a + b * b);
+                }
+                return distance;
+            };
+
+            var window_touchstart = function(e) {
                 _this.touches_count = e.touches.length;
 
                 var i = 0;
@@ -399,16 +419,20 @@ function ImageCropCompressorH5() {
 
                 dom_image_preview_left_px = _this.dom_img_preview.position().left;
                 dom_image_preview_top_px = _this.dom_img_preview.position().top;
-            });
+                width_px = dom_image_preview_width_px = _this.dom_img_preview.width(); // 这里给width_px赋值，是因为touchmove的缩放时，要根据width_px获得缩放系数
+                height_px = dom_image_preview_height_px = _this.dom_img_preview.height();
 
-            $(window).on("touchmove", function(e) {
+                distance[0] = cal_distance(x_ori[0], x_ori[1], y_ori[0], y_ori[1]);
+            };
+
+            var window_touchmove = function(e) {
 
                 e.preventDefault();
 
                 var x_now = {},
                     y_now = {};
                 var i = 0;
-                for (; i < _this.touches_count; i++) {
+                for (; i < e.touches.length; i++) {
                     x_now[i] = e.touches[i].clientX;
                     y_now[i] = e.touches[i].clientY;
                 }
@@ -424,94 +448,68 @@ function ImageCropCompressorH5() {
 
                 } else { // 缩放
 
+                    if (e.touches.length == 1)
+                        return;
+
                     // 计算两点之间距离
-                    var distance = {}; // 0-初始位置距离 1-最终位置距离
-                    var distance_cal = function() {
+                    distance[1] = cal_distance(x_now[0], x_now[1], y_now[0], y_now[1]);
 
-                        var a, b;
+                    // 距离差
+                    var distance_diff = distance[0] - distance[1];
 
-                        // 初始距离
-                        if (y_ori[0] == y_ori[1]) { // 如果y坐标相等，距离为x的差
-                            distance[0] = x_ori[1] - x_ori[0];
-                        } else if (x_ori[0] == x_ori[1]) { // 如果y坐标不相等 且 x坐标相等，距离为y的差
-                            distance[0] = y_ori[1] - y_ori[0];
-                        } else { // 如果x、y都不相等，则距离为直角三角形的斜边长度 
-                            a = y_ori[1] - y_ori[0];
-                            b = x_ori[1] - x_ori[0];
-                            distance[0] = Math.sqrt(a * a + b * b);
-                        }
+                    // 缩放后的宽高
+                    var width_new_px, height_new_px;
+                    width_new_px = dom_image_preview_width_px - distance_diff * distance_plus;
+                    height_new_px = width_new_px / _this.img_ori_ratio_per;
 
-                        // 结束距离 distance[1]
-                        if (y_now[0] == y_now[1]) { // 如果y坐标相等，距离为x的差
-                            distance[1] = x_now[1] - x_now[0];
-                        } else if (x_now[0] == x_now[1]) { // 如果y坐标不相等 且 x坐标相等，距离为y的差
-                            distance[1] = y_now[1] - y_now[0];
-                        } else { // 如果x、y都不相等，则距离为直角三角形的斜边长度 
-                            a = y_now[1] - y_now[0];
-                            b = x_now[1] - x_now[0];
-                            distance[1] = Math.sqrt(a * a + b * b);
-                        }
-                    };
-                    distance_cal();
-
-                    var distance_diff = distance[0] - distance[1]; // 距离差
-
-                    // 距离差系数（图片预览盒与裁剪盒的倍数，宽高根据图片比例决定）
-                    var distance_plus;
-                    if (_this.img_ori_ratio_per < _this.window_ratio_per)
-                        distance_plus = _this.dom_img_preview.width() / _this.dom_crop_layer.width();
-                    else
-                        distance_plus = _this.dom_img_preview.height() / _this.dom_crop_layer.height();
-                    distance_plus *= 1.1; // 解渴。
-
-                    // 执行缩放
-                    distance_diff *= distance_plus;
-
-                    var width_px;
-                    var height_px;
-                    var left_px;
-                    var top_px;
-
-                    if (distance_diff > 0) { // 缩小
-                        if (_this.img_ori_ratio_per > _this.window_ratio_per) {
-
-                            width_px = _this.dom_img_preview.width() - distance_diff;
-                            height_px = _this.dom_img_preview.height() - distance_diff / _this.img_ori_ratio_per;
-                            left_px = _this.dom_img_preview.position().left + distance_diff / 2;
-                            top_px = _this.dom_img_preview.position().top + distance_diff / _this.img_ori_ratio_per / 2;
-
-                        } else {
-
-                            width_px = _this.dom_img_preview.width() - distance_diff * _this.img_ori_ratio_per;
-                            height_px = _this.dom_img_preview.height() - distance_diff;
-                            left_px = _this.dom_img_preview.position().left + distance_diff * _this.img_ori_ratio_per / 2;
-                            top_px = _this.dom_img_preview.position().top + distance_diff / 2;
-
-                        }
-                    } else { // 放大
-
-                        if (_this.img_ori_ratio_per > _this.window_ratio_per) {
-                            width_px = _this.dom_img_preview.width() - distance_diff;
-                            height_px = _this.dom_img_preview.height() - distance_diff / _this.img_ori_ratio_per;
-                            left_px = _this.dom_img_preview.position().left + distance_diff / 2;
-                            top_px = _this.dom_img_preview.position().top + distance_diff / _this.img_ori_ratio_per / 2;
-                        } else {
-                            height_px = _this.dom_img_preview.height() - distance_diff;
-                            width_px = _this.dom_img_preview.width() - distance_diff * _this.img_ori_ratio_per;
-                            left_px = _this.dom_img_preview.position().left + distance_diff * _this.img_ori_ratio_per / 2;
-                            top_px = _this.dom_img_preview.position().top + distance_diff / 2;
-                        }
-                    }
-
-
-                    for (i = 0; i < _this.touches_count; i++) {
-                        x_ori[i] = x_now[i];
-                        y_ori[i] = y_now[i];
-                    }
+                    // 调整位置
+                    left_px = dom_image_preview_left_px + (dom_image_preview_width_px - width_new_px) / 2;
+                    top_px = dom_image_preview_top_px + (dom_image_preview_height_px - height_new_px) / 2;
 
                     // 如果放大的预览盒宽高超过原图片宽高，则退出
-                    if (width_px >= _this.img_ori_width_px || height_px >= _this.img_ori_height_px)
+                    // 如果缩小的预览盒宽高小于原图片宽高的一半，则退出
+                    if (
+                        width_new_px >= _this.img_ori_width_px ||
+                        height_new_px >= _this.img_ori_height_px
+                    ) {
+                        distance_plus = distance_plus_max;
                         return;
+                    } else if (
+                        width_new_px <= _this.crop_width_px / 2 ||
+                        height_new_px <= _this.crop_height_px / 2
+                    ) {
+                        distance_plus = 1;
+                        return;
+                    }
+
+                    // 绝对值如达标，则调整distance_plus
+                    if (Math.abs(distance_diff) >= distance_plus_distance_split) {
+                        if (distance_diff < 0)
+                            distance_plus += distance_plus_step;
+                        else
+                            distance_plus -= distance_plus_step;
+                        if (distance_plus > distance_plus_max)
+                            distance_plus = distance_plus_max;
+                        if (distance_plus < distance_plus_min)
+                            distance_plus = distance_plus_min;
+
+                        // 重设初始数据
+                        var _i = 0;
+                        for (; _i < _this.touches_count; _i++) {
+                            x_ori[_i] = x_now[_i];
+                            y_ori[_i] = y_now[_i];
+                        }
+                        dom_image_preview_top_px = top_px;
+                        dom_image_preview_left_px = left_px;
+                        dom_image_preview_width_px = width_new_px;
+                        dom_image_preview_height_px = height_new_px;
+                        distance[0] = cal_distance(x_ori[0], x_ori[1], y_ori[0], y_ori[1]);
+                        touchmove_times = 0;
+
+                    }
+
+                    width_px = width_new_px;
+                    height_px = height_new_px;
 
                     _this.dom_img_preview.css({
                         "width": width_px + "px",
@@ -521,9 +519,9 @@ function ImageCropCompressorH5() {
                     });
 
                 }
-            });
+            };
 
-            $(window).on("touchend", function() {
+            var window_touchend = function() {
 
                 // 需要调整
                 var need_move = false;
@@ -609,7 +607,13 @@ function ImageCropCompressorH5() {
                 }
 
                 _this.touches_count = 0;
-            });
+            };
+
+            $(_this.dom_crop_layer).unbind("touchstart").on("touchstart", window_touchstart);
+
+            $(_this.dom_crop_layer).unbind("touchmove").on("touchmove", window_touchmove);
+
+            $(_this.dom_crop_layer).unbind("touchend").on("touchend", window_touchend);
         },
         // 图片压缩。
         /*
@@ -679,6 +683,7 @@ function ImageCropCompressorH5() {
 
             // 判断obj类型
             if (typeof obj === "object") {
+
                 if (obj.src) { // 图片对象
                     create_canvas(obj);
                 } else { // canvas对象 直接执行压缩
@@ -698,8 +703,11 @@ function ImageCropCompressorH5() {
 
                 var doCrop = function() {
 
+                    var img_width_px = img.width;
+                    var img_height_px = img.height;
+
                     // 获得预览盒与原图的缩放比
-                    var ratio_per = (img.width / _this.dom_img_preview.width() + img.height / _this.dom_img_preview.height()) / 2;
+                    var ratio_per = (img_width_px / _this.dom_img_preview.width() + img_height_px / _this.dom_img_preview.height()) / 2;
 
                     // 利用canvas裁剪图片
                     var canvas = document.createElement("canvas");
@@ -707,13 +715,13 @@ function ImageCropCompressorH5() {
                     var crop_height_px = Math.floor(_this.crop_height_px * ratio_per);
 
                     // 裁剪宽高容错
-                    if (crop_width_px > _this.img_ori_width_px) {
-                        crop_height_px = Math.floor(_this.img_ori_width_px * crop_height_px / crop_width_px);
-                        crop_width_px = _this.img_ori_width_px;
+                    if (crop_width_px > img_width_px) {
+                        crop_height_px = Math.floor(img_width_px * crop_height_px / crop_width_px);
+                        crop_width_px = img.width;
                     }
-                    if (crop_height_px > _this.img_ori_height_px) {
-                        crop_width_px = Math.floor((_this.img_ori_height_px) * crop_width_px / crop_height_px);
-                        crop_height_px = (_this.img_ori_height_px);
+                    if (crop_height_px > img_height_px) {
+                        crop_width_px = Math.floor(img_height_px * crop_width_px / crop_height_px);
+                        crop_height_px = img_height_px;
                     }
 
                     canvas.width = crop_width_px;
@@ -721,67 +729,17 @@ function ImageCropCompressorH5() {
                     var ctx = canvas.getContext("2d");
                     var sx = Math.floor((_this.crop_left_px - _this.dom_img_preview.position().left) * ratio_per);
                     var sy = Math.floor((_this.crop_top_px - _this.dom_img_preview.position().top) * ratio_per);
-                    // if (sx === 0) {
-                    //     sx++;
-                    //     canvas.width--;
-                    // }
-                    // if (sy === 0) {
-                    //     sy++;
-                    //     canvas.height--;
-                    // }
-                    // if (_this.crop_width == _this.dom_img_preview.width() || _this.crop_height == _this.dom_img_preview.height()) {
-                    //     canvas.width -= 2;
-                    //     canvas.height -= 2;
-                    // }
 
                     // 裁剪位置和裁剪宽高 容错
-                    if (sx + crop_width_px >= _this.img_ori_width_px)
-                        sx -= sx + crop_width_px - _this.img_ori_width_px;
+                    if (sx + crop_width_px >= img_width_px)
+                        sx -= sx + crop_width_px - img_width_px;
                     if (sx < 0)
                         sx = 0;
 
-                    if (sy + crop_height_px >= _this.img_ori_height_px)
-                        sy -= sy + crop_height_px - _this.img_ori_height_px;
+                    if (sy + crop_height_px >= img_height_px)
+                        sy -= sy + crop_height_px - img_height_px;
                     if (sy < 0)
                         sy = 0;
-                    if (sy + crop_height_px > _this.img_ori_height_px) {
-                        crop_width_px = Math.floor((_this.img_ori_height_px - sy) * crop_width_px / crop_height_px);
-                        crop_height_px = (_this.img_ori_height_px - sy);
-                    }
-
-                    // 图片旋转、裁剪位置重定位
-                    // if (_this.image_exif.Orientation == "3") {
-                    //     ctx.translate(crop_width_px, crop_height_px);
-                    //     ctx.rotate(180 * Math.PI / 180);
-                    //     // sx = crop_width_px - sx - _this.crop_width_px;
-                    //     // sy = crop_height_px - sy - _this.crop_height_px;
-                    //     sx = _this.img_ori_width_px - sx - crop_width_px;
-                    //     sy = _this.img_ori_height_px - sy - crop_height_px;
-                    // }
-                    // if (_this.image_exif.Orientation == "6") {
-                    //     t = sx;
-                    //     sx = sy;
-                    //     sy = _this.img_ori_width_px - t - crop_width_px;
-
-                    //     ctx.translate(crop_width_px, 0);
-                    //     ctx.rotate(90 * Math.PI / 180);
-
-                    //     t = crop_width_px;
-                    //     crop_width_px = crop_height_px;
-                    //     crop_height_px = t;
-                    // }
-                    // if (_this.image_exif.Orientation == "8") {
-                    //     t = sx;
-                    //     sx = _this.img_ori_height_px - sy - crop_height_px;
-                    //     sy = t;
-
-                    //     ctx.translate(0, crop_height_px);
-                    //     ctx.rotate(-90 * Math.PI / 180);
-
-                    //     t = crop_width_px;
-                    //     crop_width_px = crop_height_px;
-                    //     crop_height_px = t;
-                    // }
 
                     // 裁剪
                     ctx.drawImage(img, sx, sy, crop_width_px, crop_height_px, 0, 0, crop_width_px, crop_height_px);
@@ -824,6 +782,7 @@ function ImageCropCompressorH5() {
         // 关闭弹层
         bg_close: function() {
             this.dom_crop_layer.css("display", "none");
+            this.dom_img_preview_mask_border.css("display", "none");
         }
 
     };
