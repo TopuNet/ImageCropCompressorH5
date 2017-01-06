@@ -239,7 +239,7 @@ var pic_code = {
 
 
 if (typeof define === "function" && define.amd) {
-    define([], function() {
+    define(["lib/zepto.min"], function() {
         return pic_code;
     });
 }

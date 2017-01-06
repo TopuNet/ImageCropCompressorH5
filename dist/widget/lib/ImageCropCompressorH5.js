@@ -1,78 +1,22 @@
 /*
-    基于H5的图片裁剪缩小压缩 v1.1.4
+    基于H5的图片裁剪缩小压缩 v1.1.5
     npm install TopuNet-ImageCropCompressorH5
     高京
     2016-09-22
 */
-
-var v_global = {
-    "dom_crop_layer": null,
-    "window_width_px": null,
-    "window_height_px": null,
-    "window_ratio_per": null,
-    "dom_img_preview": null,
-    "dom_img_preview_mask_border": null,
-    "dom_button_confirm": null
-};
-
-// 创建裁剪及遮罩DOM
-(function() {
-
-    // 生成时间戳——作随机数用
-    var dt = new Date();
-    var _stamp = Date.parse(dt).toString();
-
-    var dom_body = $("body");
-
-    // 添加crop_layer
-    v_global.dom_crop_layer = $(document.createElement("section"))
-        .addClass("crop_layer" + _stamp)
-        .css({
-            "width": "100vw",
-            "height": "100vh",
-            "top": "0",
-            "left": "0",
-            "background": "#000",
-            "position": "fixed",
-            "z-index": "8888",
-            "display": "none"
-        }).appendTo(dom_body);
-
-    // 获得窗口宽高及宽高比
-    v_global.window_width_px = $(window).width();
-    v_global.window_height_px = $(window).height();
-    v_global.window_ratio_per = v_global.window_width_px / v_global.window_height_px;
-
-    // 添加img_preview盒
-    v_global.dom_img_preview = $(document.createElement("img"))
-        .css("display", "none").appendTo(v_global.dom_crop_layer);
-
-    // 创建确定按钮
-    v_global.dom_button_confirm = $(document.createElement("div"))
-        .css({
-            "position": "fixed",
-            "left": "50%",
-            "bottom": "10vh",
-            "width": "26vw",
-            "height": "8vw",
-            "line-height": "8vw",
-            "margin-left": "-13vw",
-            "color": "#ccc",
-            "text-align": "center",
-            "font-size": "4vw",
-            "border": "solid 1px #ddd",
-            "border-radius": "5px",
-            "z-index": "8999"
-        })
-        .text("加载中…")
-        .appendTo(v_global.dom_crop_layer);
-})();
+var ImageCropCompressorH5_global = {};
 
 function ImageCropCompressorH5() {
+
     return {
         // 监听文件域的change事件
         Listener: function(opt) {
-            var _this = $.extend(this, v_global);
+            var _this = this;
+
+            if (!ImageCropCompressorH5_global.dom_crop_layer)
+                _this.Init.apply(_this);
+
+            var _this = $.extend(_this, ImageCropCompressorH5_global);
 
             var opt_default = {
                 image_input_selector: "input[type=file]", // 监听的文件域选择器。默认input[type=file]
@@ -100,10 +44,10 @@ function ImageCropCompressorH5() {
             // 根据目标尺寸生成裁剪框和边框
             (function() {
                 // 计算裁剪层宽高
-                _this.crop_width_px = Math.floor(v_global.window_width_px * 0.9);
+                _this.crop_width_px = Math.floor(_this.window_width_px * 0.9);
                 _this.crop_height_px = Math.floor(_this.crop_width_px * _this.Paras.image_height_px / _this.Paras.image_width_px);
 
-                if (_this.crop_height_px > Math.floor(v_global.window_height_px * 0.7)) {
+                if (_this.crop_height_px > Math.floor(_this.window_height_px * 0.7)) {
                     _this.crop_width_px = Math.floor(_this.crop_width_px * _this.window_height_px * 0.7 / _this.crop_height_px);
                     _this.crop_height_px = Math.floor(_this.window_height_px * 0.7);
                 }
@@ -359,6 +303,59 @@ function ImageCropCompressorH5() {
                 }, 200);
             });
         },
+        // 初始化，增加必要的盒
+        Init: function() {
+            var _this = this;
+
+            // 生成时间戳——作随机数用
+            var dt = new Date();
+            var _stamp = Date.parse(dt).toString();
+
+            var dom_body = $("body");
+
+            // 添加crop_layer
+            ImageCropCompressorH5_global.dom_crop_layer = $(document.createElement("section"))
+                .addClass("crop_layer" + _stamp)
+                .css({
+                    "width": "100vw",
+                    "height": "100vh",
+                    "top": "0",
+                    "left": "0",
+                    "background": "#000",
+                    "position": "fixed",
+                    "z-index": "8888",
+                    "display": "none"
+                }).appendTo(dom_body);
+
+            // 获得窗口宽高及宽高比
+            ImageCropCompressorH5_global.window_width_px = $(window).width();
+            ImageCropCompressorH5_global.window_height_px = $(window).height();
+            ImageCropCompressorH5_global.window_ratio_per = ImageCropCompressorH5_global.window_width_px / ImageCropCompressorH5_global.window_height_px;
+
+            // 添加img_preview盒
+            ImageCropCompressorH5_global.dom_img_preview = $(document.createElement("img"))
+                .css("display", "none").appendTo(ImageCropCompressorH5_global.dom_crop_layer);
+
+            // 创建确定按钮
+            ImageCropCompressorH5_global.dom_button_confirm = $(document.createElement("div"))
+                .css({
+                    "position": "fixed",
+                    "left": "50%",
+                    "bottom": "10vh",
+                    "width": "26vw",
+                    "height": "8vw",
+                    "line-height": "8vw",
+                    "margin-left": "-13vw",
+                    "color": "#ccc",
+                    "text-align": "center",
+                    "font-size": "4vw",
+                    "border": "solid 1px #ddd",
+                    "border-radius": "5px",
+                    "z-index": "8999"
+                })
+                .text("加载中…")
+                .appendTo(ImageCropCompressorH5_global.dom_crop_layer);
+        },
         // 监听图片预览盒的拖拽及缩放事件
         img_preview_drag: function() {
 
@@ -504,7 +501,6 @@ function ImageCropCompressorH5() {
                         dom_image_preview_width_px = width_new_px;
                         dom_image_preview_height_px = height_new_px;
                         distance[0] = cal_distance(x_ori[0], x_ori[1], y_ori[0], y_ori[1]);
-                        touchmove_times = 0;
 
                     }
 
@@ -789,7 +785,7 @@ function ImageCropCompressorH5() {
 }
 
 if (typeof define === "function" && define.amd) {
-    define(["lib/exif", "lib/zepto.min"], function() {
+    define(["lib/exif"], function() {
         return ImageCropCompressorH5;
     });
 }
