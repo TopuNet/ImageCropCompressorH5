@@ -1,5 +1,5 @@
 # 图片裁剪压缩插件，基于H5 v1.1.5
-###安装：npm install TopuNet-ImageCropCompressorH5
+### 安装：npm install TopuNet-ImageCropCompressorH5
 
 文件结构：
 -------------
